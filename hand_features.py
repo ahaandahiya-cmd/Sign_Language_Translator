@@ -130,3 +130,49 @@ def feature_summary(landmarks):
         "curls": finger_curl_angles(landmarks),
         "thumb_pos": thumb_position(landmarks),
     }
+
+
+_TIP_ORDER = ["thumb", "index", "middle", "ring", "pinky"]
+_TIP_IDX = {"thumb": THUMB_TIP, "index": INDEX_TIP, "middle": MIDDLE_TIP,
+            "ring": RING_TIP, "pinky": PINKY_TIP}
+_PAIRS = [("thumb", "index"), ("index", "middle"), ("middle", "ring"),
+          ("ring", "pinky"), ("thumb", "pinky")]
+
+
+def engineered_from_points(pts):
+    """
+    Extra discriminative features computed from a (21,3) point array
+    (works on either raw or normalized points — angles are rotation/scale
+    invariant, and distances are meaningful as long as `pts` is already
+    scale-normalized, which normalized_vector's output is).
+    Returns a 15-length vector: 5 curl angles + 5 pairwise fingertip
+    distances + 5 fingertip-to-wrist distances ("spread").
+    """
+    curls = np.array([
+        _angle_deg(pts[FINGERS[n][0]], pts[FINGERS[n][1]], pts[FINGERS[n][3]])
+        for n in _TIP_ORDER
+    ]) / 180.0
+
+    tip_pts = {n: pts[_TIP_IDX[n]][:2] for n in _TIP_ORDER}
+    pair_dists = np.array([
+        np.linalg.norm(tip_pts[a] - tip_pts[b]) for a, b in _PAIRS
+    ])
+
+    wrist = pts[WRIST][:2]
+    spread = np.array([np.linalg.norm(tip_pts[n] - wrist) for n in _TIP_ORDER])
+
+    return np.concatenate([curls, pair_dists, spread])
+
+
+def full_feature_vector(landmarks):
+    """
+    The feature vector used for training/predicting with the ML model:
+    normalized landmark positions (63) + engineered geometric features (15)
+    = 78 dims. The engineered features give the classifier explicit access
+    to the same curl/distance signals the rule-based classifier uses,
+    which meaningfully improves precision over raw coordinates alone.
+    """
+    vec = normalized_vector(landmarks)
+    pts = vec.reshape(21, 3)
+    eng = engineered_from_points(pts)
+    return np.concatenate([vec, eng])

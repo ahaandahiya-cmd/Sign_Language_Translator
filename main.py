@@ -38,7 +38,7 @@ TRANSCRIPT_PATH = os.path.join(os.path.dirname(__file__), "transcript.txt")
 HOLD_FRAMES = 15          # consecutive frames of the same letter needed to commit it
 COMMIT_FRACTION = 0.8     # fraction of those frames that must agree
 MIN_MEAN_CONFIDENCE = 0.6 # average confidence over the held window
-CONFIDENCE_THRESHOLD = 0.5
+CONFIDENCE_THRESHOLD = 0.6  # matches rule_classifier.MIN_CONFIDENCE
 COOLDOWN_SEC = 0.6        # min time before the *same* letter can be typed again
 
 
